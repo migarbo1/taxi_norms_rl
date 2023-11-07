@@ -8,8 +8,8 @@ class GridZones(Enum):
     QUEUE = 1
     CAR = 3
     PICKUP = 10
-    DROP1 = 100
-    DROP2 = 75
+    DROP1 = 90
+    DROP2 = 60
     DROP3 = 50
 
 
@@ -19,8 +19,8 @@ class Action(Enum):
     DOWN = 2
     LEFT = 3
     RIGHT = 4
-    PICK = 2
-    DROP = 2
+    PICK = 5
+    DROP = 6
 
 
 class TaxiGridEnv():
@@ -29,7 +29,9 @@ class TaxiGridEnv():
         self.grid = np.zeros((8,12))
         self.drivers_dict = {}
         self._setup_grid()
-        print(self.grid)
+        self.__invariant_grid = self.grid.copy()
+        print("current grid:", self.grid)
+
 
     def _setup_grid(self):
         self._set_queue()
@@ -37,16 +39,20 @@ class TaxiGridEnv():
         self._set_drop_zones()
         self._set_barriers()
 
+
     def _set_queue(self):
         self.grid[1:-1, 0] = GridZones.QUEUE.value
 
+
     def _set_pickup(self):
         self.grid[-1, 0] = GridZones.PICKUP.value
+
 
     def _set_drop_zones(self):
         self.grid[-1, 11] = GridZones.DROP1.value
         self.grid[-1, 6] = GridZones.DROP2.value
         self.grid[3, 7] = GridZones.DROP3.value
+
 
     def _set_barriers(self):
         self.grid[1:4, 2] = GridZones.BARRIERS.value
@@ -61,22 +67,115 @@ class TaxiGridEnv():
 
         self.grid[6:, 5] = GridZones.BARRIERS.value
 
+
+    def reset(self):
+        self.__init__(self)
+
+
     def register_driver(self):
         pos_code = GridZones.BARRIERS.value
-        car_in_pos = True
 
-        while pos_code != 0 and car_in_pos:
+        while pos_code != 0:
             x = random.randint(0, self.grid.shape[0] - 1)
             y = random.randint(0, self.grid.shape[1] - 1)
             pos_code = self.grid[x,y]
-            car_in_pos = False or (self.drivers_dict[k] == (x, y) for k in self.drivers_dict.keys())
         
-        self.drivers_dict[len(self.drivers_dict.keys())] = (x, y)
-        return State(x, y)
+        self.grid[x,y] = GridZones.CAR.value
 
-    def step(self, state, action):
-        pass
+        state = State(x, y)
+        state.update_car_view(self.grid)
+        print("grid after register driver:", self.grid)
 
-env = TaxiGridEnv()
-state = env.register_driver()
-print(state.to_array())
+        return state
+
+
+    def step(self, state: State, action: Action):
+        if action == Action.WAIT:
+            if self.car_in_queue(state.pos) and self.next_queue_spot_occupied(state.pos):
+                return 0, state
+            else:
+                return -1, state
+        
+        if action == Action.UP:
+            x = max(0, state.pos[0] - 1)
+            new_state = State(x, state.pos[1])
+            new_state.client_on_board = state.client_on_board
+            self.update_grid(state.pos, new_state.pos)
+            new_state.update_car_view(self.grid)
+            return -1, new_state
+
+        if action == Action.DOWN:
+            x = min(self.grid.shape[0] - 1, state.pos[0] + 1)
+            new_state = State(x, state.pos[1])
+            new_state.client_on_board = state.client_on_board
+            self.update_grid(state.pos, new_state.pos)
+            new_state.update_car_view(self.grid)
+            return -1, new_state
+
+        if action == Action.LEFT:
+            y = max(0, state.pos[1] - 1)
+            new_state = State(state.pos[0], y)
+            new_state.client_on_board = state.client_on_board
+            self.update_grid(state.pos, new_state.pos)
+            new_state.update_car_view(self.grid)
+            return -1, new_state
+
+        if action == Action.RIGHT:
+            y = min(self.grid.shape[1] - 1, state.pos[1] + 1)
+            new_state = State(state.pos[0], y)
+            new_state.client_on_board = state.client_on_board
+            self.update_grid(state.pos, new_state.pos)
+            new_state.update_car_view(self.grid)
+            return -1, new_state
+
+        if action == Action.PICK:
+            if self.car_in_pick_position(state.pos):
+                new_state = state
+                new_state.client_on_board = 1
+                return 10, new_state
+            else:
+                return -1, state
+            
+        if action == Action.DROP:
+            if self.car_in_drop_position(state.pos):
+                new_state = state
+                new_state.client_on_board = 0
+                reward = self.get_drop_reward(new_state.pos)
+                return reward, new_state
+            else:
+                return -1, state
+
+
+    def car_in_queue(self, pos):
+        x, y = pos[0], pos[1]
+        return self.grid[x, y] == GridZones.QUEUE.value
+    
+
+    def next_queue_spot_occupied(self, pos):
+        x, y = pos[0]+1, pos[1]
+        return self.grid[x, y] == GridZones.CAR.value
+    
+
+    def car_in_pick_position(self, pos):
+        x, y = pos[0], pos[1]
+        return self.grid[x, y] == GridZones.PICKUP.value
+
+
+    def car_in_drop_position(self, pos):
+        x, y = pos[0], pos[1]
+        return self.grid[x, y] == GridZones.DROP1.value or self.grid[x,y] == GridZones.DROP2.value or self.grid[x,y] == GridZones.DROP3.value
+    
+
+    def get_drop_reward(self, pos):
+        x, y = pos[0], pos[1]
+        return self.grid[x, y]
+    
+    
+    def update_grid(self, old_pos, new_pos):
+        x, y = old_pos
+        x_, y_ = new_pos
+
+        self.grid[x_, y_] = GridZones.CAR.value
+        self.grid[x, y] = self.__invariant_grid[x, y]
+        print("updated grid:", self.grid)
+
