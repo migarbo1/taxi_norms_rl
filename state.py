@@ -6,10 +6,6 @@ class State():
         self.pos = [x, y]
         self.client_on_board = 0
         self.view = np.zeros((8,))
-
-
-    def to_array(self):
-        return [*self.pos, self.client_on_board, *self.view]
     
 
     def update_car_view(self, grid):
@@ -27,7 +23,19 @@ class State():
 
         self.view = [ul, u, ur, l, r, dl, d, dr]
 
+
+    def __str__(self) -> str:
+        return f'pos: {self.pos}, client_on_board: {self.client_on_board}, view: {self.view}'
+
+
+    def __eq__(self, __value: object) -> bool:
+        return self.pos == __value.pos and self.client_on_board == __value.client_on_board and self.view == __value.view
+
     
+    def __hash__(self) -> int:
+        return hash((self.pos[0], self.pos[1], self.client_on_board, hash((x for x in self.view))))
+
+
 def array_to_state(array):
     state = State(*array[0:2])
     state.client_on_board = array[2]

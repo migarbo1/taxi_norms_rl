@@ -30,7 +30,6 @@ class TaxiGridEnv():
         self.drivers_dict = {}
         self._setup_grid()
         self.__invariant_grid = self.grid.copy()
-        print("current grid:", self.grid)
 
 
     def _setup_grid(self):
@@ -69,7 +68,7 @@ class TaxiGridEnv():
 
 
     def reset(self):
-        self.__init__(self)
+        self.__init__()
 
 
     def register_driver(self):
@@ -84,12 +83,12 @@ class TaxiGridEnv():
 
         state = State(x, y)
         state.update_car_view(self.grid)
-        print("grid after register driver:", self.grid)
 
         return state
 
 
     def step(self, state: State, action: Action):
+        action = Action(action)
         if action == Action.WAIT:
             if self.car_in_queue(state.pos) and self.next_queue_spot_occupied(state.pos):
                 return 0, state
@@ -98,6 +97,8 @@ class TaxiGridEnv():
         
         if action == Action.UP:
             x = max(0, state.pos[0] - 1)
+            if self.grid[x, state.pos[1]] == -1:
+                return -1, state
             new_state = State(x, state.pos[1])
             new_state.client_on_board = state.client_on_board
             self.update_grid(state.pos, new_state.pos)
@@ -106,6 +107,8 @@ class TaxiGridEnv():
 
         if action == Action.DOWN:
             x = min(self.grid.shape[0] - 1, state.pos[0] + 1)
+            if self.grid[x, state.pos[1]] == -1:
+                return -1, state
             new_state = State(x, state.pos[1])
             new_state.client_on_board = state.client_on_board
             self.update_grid(state.pos, new_state.pos)
@@ -114,6 +117,8 @@ class TaxiGridEnv():
 
         if action == Action.LEFT:
             y = max(0, state.pos[1] - 1)
+            if self.grid[state.pos[0], y] == -1:
+                return -1, state
             new_state = State(state.pos[0], y)
             new_state.client_on_board = state.client_on_board
             self.update_grid(state.pos, new_state.pos)
@@ -122,6 +127,8 @@ class TaxiGridEnv():
 
         if action == Action.RIGHT:
             y = min(self.grid.shape[1] - 1, state.pos[1] + 1)
+            if self.grid[state.pos[0], y] == -1:
+                return -1, state
             new_state = State(state.pos[0], y)
             new_state.client_on_board = state.client_on_board
             self.update_grid(state.pos, new_state.pos)
@@ -175,7 +182,6 @@ class TaxiGridEnv():
         x, y = old_pos
         x_, y_ = new_pos
 
-        self.grid[x_, y_] = GridZones.CAR.value
         self.grid[x, y] = self.__invariant_grid[x, y]
-        print("updated grid:", self.grid)
+        self.grid[x_, y_] = GridZones.CAR.value
 
