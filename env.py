@@ -19,8 +19,12 @@ class Action(Enum):
     DOWN = 2
     LEFT = 3
     RIGHT = 4
-    PICK = 5
-    DROP = 6
+    # PICK = 1
+    # DROP = 2
+    # UP = 3
+    # DOWN = 4
+    # LEFT = 5
+    # RIGHT = 6
 
 
 class TaxiGridEnv():
@@ -93,64 +97,79 @@ class TaxiGridEnv():
             if self.car_in_queue(state.pos) and self.next_queue_spot_occupied(state.pos):
                 return 0, state
             else:
-                return -1, state
+                return -100, state
         
         if action == Action.UP:
-            x = max(0, state.pos[0] - 1)
-            if self.grid[x, state.pos[1]] == -1:
+            x = state.pos[0] - 1
+            if x < 0 or self.grid[x, state.pos[1]] == -1:
                 return -1, state
             new_state = State(x, state.pos[1])
             new_state.client_on_board = state.client_on_board
-            self.update_grid(state.pos, new_state.pos)
-            new_state.update_car_view(self.grid)
-            return -1, new_state
-
-        if action == Action.DOWN:
-            x = min(self.grid.shape[0] - 1, state.pos[0] + 1)
-            if self.grid[x, state.pos[1]] == -1:
-                return -1, state
-            new_state = State(x, state.pos[1])
-            new_state.client_on_board = state.client_on_board
-            self.update_grid(state.pos, new_state.pos)
-            new_state.update_car_view(self.grid)
-            return -1, new_state
-
-        if action == Action.LEFT:
-            y = max(0, state.pos[1] - 1)
-            if self.grid[state.pos[0], y] == -1:
-                return -1, state
-            new_state = State(state.pos[0], y)
-            new_state.client_on_board = state.client_on_board
-            self.update_grid(state.pos, new_state.pos)
-            new_state.update_car_view(self.grid)
-            return -1, new_state
-
-        if action == Action.RIGHT:
-            y = min(self.grid.shape[1] - 1, state.pos[1] + 1)
-            if self.grid[state.pos[0], y] == -1:
-                return -1, state
-            new_state = State(state.pos[0], y)
-            new_state.client_on_board = state.client_on_board
-            self.update_grid(state.pos, new_state.pos)
-            new_state.update_car_view(self.grid)
-            return -1, new_state
-
-        if action == Action.PICK:
-            if self.car_in_pick_position(state.pos):
-                new_state = state
+            reward = -1
+            if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
                 new_state.client_on_board = 1
-                return 10, new_state
-            else:
-                return -1, state
+                reward = 10
             
-        if action == Action.DROP:
-            if self.car_in_drop_position(state.pos):
-                new_state = state
+            if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
                 new_state.client_on_board = 0
                 reward = self.get_drop_reward(new_state.pos)
-                return reward, new_state
-            else:
+            self.update_grid(state.pos, new_state.pos)
+            new_state.update_car_view(self.grid)
+            return reward, new_state
+
+        if action == Action.DOWN:
+            x = state.pos[0] + 1
+            if x > self.grid.shape[0] - 1 or self.grid[x, state.pos[1]] == -1:
                 return -1, state
+            new_state = State(x, state.pos[1])
+            new_state.client_on_board = state.client_on_board
+            reward = -1
+            if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
+                new_state.client_on_board = 1
+                reward = 10
+            
+            if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
+                new_state.client_on_board = 0
+                reward = self.get_drop_reward(new_state.pos)
+            self.update_grid(state.pos, new_state.pos)
+            new_state.update_car_view(self.grid)
+            return reward, new_state
+
+        if action == Action.LEFT:
+            y = state.pos[1] - 1
+            if y < 0 or self.grid[state.pos[0], y] == -1:
+                return -1, state
+            new_state = State(state.pos[0], y)
+            new_state.client_on_board = state.client_on_board
+            reward = -1
+            if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
+                new_state.client_on_board = 1
+                reward = 10
+            
+            if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
+                new_state.client_on_board = 0
+                reward = self.get_drop_reward(new_state.pos)
+            self.update_grid(state.pos, new_state.pos)
+            new_state.update_car_view(self.grid)
+            return reward, new_state
+
+        if action == Action.RIGHT:
+            y = state.pos[1] + 1
+            if y > self.grid.shape[1] - 1 or  self.grid[state.pos[0], y] == -1:
+                return -1, state
+            new_state = State(state.pos[0], y)
+            new_state.client_on_board = state.client_on_board
+            reward = -1
+            if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
+                new_state.client_on_board = 1
+                reward = 10
+            
+            if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
+                new_state.client_on_board = 0
+                reward = self.get_drop_reward(new_state.pos)
+            self.update_grid(state.pos, new_state.pos)
+            new_state.update_car_view(self.grid)
+            return reward, new_state
 
 
     def car_in_queue(self, pos):

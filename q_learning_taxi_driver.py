@@ -1,18 +1,15 @@
-from matplotlib.animation import FuncAnimation
 import numpy as np
 import random
-from env import Action, TaxiGridEnv
-from utils import save_object
+from env import TaxiGridEnv
+from utils import *
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import threading
 
-EPISODES = 50000
+EPISODES = 1000000
 EPISODE_STEP_LIMIT = 1000
 LR = 0.1 
 GAMMA = 0.99
 EPSILON = 0.1
-NUM_ACTIONS = 7
+NUM_ACTIONS = 5
 
 def select_max_action(qs):
     return np.argmax(qs)
@@ -31,15 +28,6 @@ def reset(env: TaxiGridEnv):
     state = env.register_driver()
 
     return state
-
-
-def init(im, grid):
-    im.set_data(grid)
-    
-
-
-def update(self, im, grid):
-    im.set_data(grid)
 
 
 def q_learning(Q, N, env):
@@ -71,12 +59,6 @@ if __name__ == '__main__':
     Q = {}
     N = {}
     env = TaxiGridEnv()
-
-    figure = plt.figure()
-    data = np.zeros(env.grid.shape)
-    im = plt.imshow(data)
-    ani = FuncAnimation(figure, update, fargs=(im, env.grid,), interval=2000, cache_frame_data=False)
-
-    t = threading.Thread(target=q_learning, args=(Q,N,env))
-    t.start()
-    plt.show()
+    if os.path.exists('./Q.pickle'):
+        Q =  load_object('.','Q')
+    q_learning(Q,N,env)
