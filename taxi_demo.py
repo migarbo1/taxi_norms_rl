@@ -15,11 +15,10 @@ def select_max_action(qs):
 
 def select_action(qs, deterministic = True):
     if deterministic:
-        return select_action(qs)
+        return select_max_action(qs)
     else:
         if random.uniform(0, 1) > EPSILON:
-            action =  select_max_action(qs)
-            return action
+            return select_max_action(qs)
         else:
             return random.randint(0, NUM_ACTIONS-1)
     
