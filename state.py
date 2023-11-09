@@ -33,7 +33,24 @@ class State():
 
     
     def __hash__(self) -> int:
-        return hash((self.pos[0], self.pos[1], self.client_on_board, hash((x for x in self.view))))
+        return hash((self.pos[0], self.pos[1], self.client_on_board, *self.view))
+
+class SimpleState(State):
+
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.view = np.zeros((4,))
+
+    def update_car_view(self, grid):
+
+        u = grid[self.pos[0]-1, self.pos[1]] if self.pos[0] > 0 else -1
+
+        l = grid[self.pos[0], self.pos[1]-1] if self.pos[1] > 0 else -1
+        r = grid[self.pos[0], self.pos[1]+1] if self.pos[1] < grid.shape[1]-1 else -1
+
+        d = grid[self.pos[0]+1, self.pos[1]] if self.pos[0] < grid.shape[0]-1 else -1
+
+        self.view = [u, d, l, r]
 
 
 def array_to_state(array):

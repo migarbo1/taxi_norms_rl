@@ -4,8 +4,8 @@ from env import TaxiGridEnv
 from utils import *
 from tqdm import tqdm
 
-EPISODES = 1000000
-EPISODE_STEP_LIMIT = 1000
+EPISODES = 50000
+EPISODE_STEP_LIMIT = 500
 LR = 0.1 
 GAMMA = 0.99
 EPSILON = 0.1
@@ -59,6 +59,6 @@ if __name__ == '__main__':
     Q = {}
     N = {}
     env = TaxiGridEnv()
-    if os.path.exists('./Q.pickle'):
-        Q =  load_object('.','Q')
+    if os.path.exists('./Q1M.pickle'):
+        Q =  load_object('.','Q1M')
     q_learning(Q,N,env)
