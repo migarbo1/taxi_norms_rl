@@ -203,4 +203,5 @@ class TaxiGridEnv():
 
         self.grid[x, y] = self.__invariant_grid[x, y]
         self.grid[x_, y_] = GridZones.CAR.value
+        print(self.grid)
 

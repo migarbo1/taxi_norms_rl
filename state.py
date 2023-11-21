@@ -41,6 +41,7 @@ class SimpleState(State):
         super().__init__(x, y)
         self.view = np.zeros((4,))
 
+
     def update_car_view(self, grid):
 
         u = grid[self.pos[0]-1, self.pos[1]] if self.pos[0] > 0 else -1
@@ -52,6 +53,13 @@ class SimpleState(State):
 
         self.view = [u, d, l, r]
 
+
+    @staticmethod
+    def from_json(s: dict):
+        state = SimpleState(*s['pos'])
+        state.client_on_board = s['client_on_board']
+        state.view = s['view']
+        return state
 
 def array_to_state(array):
     state = State(*array[0:2])
