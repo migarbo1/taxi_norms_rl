@@ -1,3 +1,4 @@
+import asyncio
 from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.template import Template
 from spade.message import Message
@@ -28,11 +29,15 @@ class TaxiAgent(Agent):
         self.add_behaviour(self.RequestRegisterBehaviour())
         template = Template(metadata={"performative": "STEP_RESPONSE"})
         self.add_behaviour(self.PerformStepBehaviour(), template=template)
+        template = Template(metadata={"performative": "RESET"})
+        self.add_behaviour(self.ResetBehaviour(), template=template)
 
 
     def decide_action(self):
         qs = self.q_table.get(self.state, np.zeros(NUM_ACTIONS,))
-        print(qs)
+
+        # print(f'{self.jid} | state: {self.state} | q table: {qs}')
+
         if self.inference:
             return np.argmax(qs)
         else:
@@ -40,6 +45,8 @@ class TaxiAgent(Agent):
                 return np.argmax(qs)
             else:
                 return random.randint(0, NUM_ACTIONS-1)
+
+
 
 
     def update_q_table(self, action, _state, reward):
@@ -53,7 +60,7 @@ class TaxiAgent(Agent):
 
         self.state = _state
         self.total_reward += reward
-        
+
         if reward > 10:
             self.jobs_completed += 1
 
@@ -62,11 +69,11 @@ class TaxiAgent(Agent):
         async def run(self) -> None:
             msg = Message(to=str(self.agent.env_jid), body=json.dumps({}), metadata={"performative": "REGISTER"})
             await self.send(msg)
-            print('register petititon sended')
+            
             resp = None
             while not resp:
                 resp = await self.receive(timeout=2)
-            print('register response received')
+            
             body = json.loads(resp.body)
             self.agent.state = SimpleState.from_json(body['state'])
 
@@ -78,11 +85,21 @@ class TaxiAgent(Agent):
             action = self.agent.decide_action()
             msg = Message(to=str(self.agent.env_jid), body=json.dumps({'state': self.agent.state.__dict__, 'action': int(action)}), metadata={"performative": "STEP"})
             await self.send(msg)
-            print('petition for step sended')
+            
             resp = None
             while not resp:
+                await asyncio.sleep(0.1)
                 resp = await self.receive(timeout=2)
-            print('response to step received')
+                
             body = json.loads(resp.body)
             _state, reward = SimpleState.from_json(body['state']), body['reward']
             self.agent.update_q_table(action, _state, reward)
+
+
+    class ResetBehaviour(CyclicBehaviour):
+        async def run(self) -> None:
+            msg = await self.receive(timeout=2)
+            if msg:
+                body = json.loads(msg.body)
+                _state = SimpleState.from_json(body['state'])
+                self.agent.state = _state
