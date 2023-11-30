@@ -3,7 +3,7 @@ from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.template import Template
 from spade.message import Message
 from spade.agent import Agent
-from state import SimpleState
+from state import State
 import numpy as np
 import random
 import json
@@ -75,25 +75,32 @@ class TaxiAgent(Agent):
                 resp = await self.receive(timeout=2)
             
             body = json.loads(resp.body)
-            self.agent.state = SimpleState.from_json(body['state'])
+            self.agent.state = State.from_json(body['state'])
 
 
     class PerformStepBehaviour(CyclicBehaviour):
         async def run(self) -> None:
             if not self.agent.state:
                 return 
+            
             action = self.agent.decide_action()
             msg = Message(to=str(self.agent.env_jid), body=json.dumps({'state': self.agent.state.__dict__, 'action': int(action)}), metadata={"performative": "STEP"})
             await self.send(msg)
             
             resp = None
-            while not resp:
+            count = 0
+            while not resp and count < 3:
                 await asyncio.sleep(0.1)
-                resp = await self.receive(timeout=2)
-                
-            body = json.loads(resp.body)
-            _state, reward = SimpleState.from_json(body['state']), body['reward']
-            self.agent.update_q_table(action, _state, reward)
+                resp = await self.receive(timeout=1)
+                count += 1
+            
+            if resp:
+                body = json.loads(resp.body)
+                if body['ood']:
+                    self.state = State.from_json(body['state'])
+                else:
+                    _state, reward = State.from_json(body['state']), body['reward']
+                    self.agent.update_q_table(action, _state, reward)
 
 
     class ResetBehaviour(CyclicBehaviour):
@@ -101,5 +108,5 @@ class TaxiAgent(Agent):
             msg = await self.receive(timeout=2)
             if msg:
                 body = json.loads(msg.body)
-                _state = SimpleState.from_json(body['state'])
+                _state = State.from_json(body['state'])
                 self.agent.state = _state

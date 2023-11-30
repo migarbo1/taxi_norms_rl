@@ -1,7 +1,7 @@
 import numpy as np
 from enum import Enum
 import random
-from state import SimpleState
+from state import State
 
 class GridZones(Enum):
     BARRIERS = -1
@@ -19,12 +19,6 @@ class Action(Enum):
     DOWN = 2
     LEFT = 3
     RIGHT = 4
-    # PICK = 1
-    # DROP = 2
-    # UP = 3
-    # DOWN = 4
-    # LEFT = 5
-    # RIGHT = 6
 
 
 class TaxiGridEnv():
@@ -85,13 +79,13 @@ class TaxiGridEnv():
         
         self.grid[x,y] = GridZones.CAR.value
 
-        state = SimpleState(x, y)
+        state = State(x, y)
         state.update_car_view(self.grid)
 
         return state
 
 
-    def step(self, state: SimpleState, action: Action):
+    def step(self, state: State, action: Action):
         action = Action(action)
         if action == Action.WAIT:
             if self.car_in_queue(state.pos) and self.next_queue_spot_occupied(state.pos):
@@ -103,7 +97,7 @@ class TaxiGridEnv():
             x = state.pos[0] - 1
             if x < 0 or self.grid[x, state.pos[1]] == -1 or self.grid[x, state.pos[1]] == 3:
                 return -1, state
-            new_state = SimpleState(x, state.pos[1])
+            new_state = State(x, state.pos[1])
             new_state.client_on_board = state.client_on_board
             reward = -1
             if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
@@ -121,7 +115,7 @@ class TaxiGridEnv():
             x = state.pos[0] + 1
             if x > self.grid.shape[0] - 1 or self.grid[x, state.pos[1]] == -1 or self.grid[x, state.pos[1]] == 3:
                 return -1, state
-            new_state = SimpleState(x, state.pos[1])
+            new_state = State(x, state.pos[1])
             new_state.client_on_board = state.client_on_board
             reward = -1
             if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
@@ -139,7 +133,7 @@ class TaxiGridEnv():
             y = state.pos[1] - 1
             if y < 0 or self.grid[state.pos[0], y] == -1 or self.grid[state.pos[0], y] == 3:
                 return -1, state
-            new_state = SimpleState(state.pos[0], y)
+            new_state = State(state.pos[0], y)
             new_state.client_on_board = state.client_on_board
             reward = -1
             if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
@@ -157,7 +151,7 @@ class TaxiGridEnv():
             y = state.pos[1] + 1
             if y > self.grid.shape[1] - 1 or self.grid[state.pos[0], y] == -1 or self.grid[state.pos[0], y] == 3:
                 return -1, state
-            new_state = SimpleState(state.pos[0], y)
+            new_state = State(state.pos[0], y)
             new_state.client_on_board = state.client_on_board
             reward = -1
             if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:

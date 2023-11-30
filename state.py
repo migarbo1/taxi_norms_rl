@@ -34,6 +34,15 @@ class State():
     
     def __hash__(self) -> int:
         return hash((self.pos[0], self.pos[1], self.client_on_board, *self.view))
+    
+
+    @staticmethod
+    def from_json(s: dict):
+        state = State(*s['pos'])
+        state.client_on_board = s['client_on_board']
+        state.view = s['view']
+        return state
+    
 
 class SimpleState(State):
 
@@ -53,13 +62,13 @@ class SimpleState(State):
 
         self.view = [u, d, l, r]
 
-
     @staticmethod
     def from_json(s: dict):
         state = SimpleState(*s['pos'])
         state.client_on_board = s['client_on_board']
         state.view = s['view']
         return state
+
 
 def array_to_state(array):
     state = State(*array[0:2])

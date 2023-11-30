@@ -2,13 +2,13 @@ from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 from spade.message import Message
 from spade.agent import Agent
-from state import SimpleState
+from state import State
 from env import TaxiGridEnv
 import json
 
 
-MAX_STEPS_IN_EPISODE = 1000 # 2' 15" aprox per episode
-MAX_EPISODES = 100
+MAX_STEPS_IN_EPISODE = 750 # 2' 15" aprox per episode
+MAX_EPISODES = 50
 
 
 class TaxiEnvAgent(Agent):
@@ -19,6 +19,13 @@ class TaxiEnvAgent(Agent):
         self.num_step = 0
         self.finished = False
         self.agents = []
+
+
+    def state_is_consistent(self, state):
+        aux_state = State(*state.pos)
+        aux_state.update_car_view(self.env.grid)
+        #print(state.view, aux_state.view, state.view == aux_state.view)
+        return state.view == aux_state.view, aux_state.view
 
     
     async def setup(self) -> None:
@@ -44,16 +51,28 @@ class TaxiEnvAgent(Agent):
             if msg:
                 self.agent.num_step += 1
                 body = json.loads(msg.body)
-                reward, _state = self.agent.env.step(SimpleState.from_json(body['state']), int(body['action']))
-                msg = Message(to=str(msg.sender), body=json.dumps({'state': _state.__dict__, 'reward': reward}), metadata={"performative": "STEP_RESPONSE"})
-                await self.send(msg)
+                # print(self.agent.env.grid)
+                # print(f'{msg.sender} about to perform action: {body["state"]}, {body["action"]}')
 
-                if self.agent.num_step == MAX_EPISODES * MAX_STEPS_IN_EPISODE:
-                    self.agent.finished = True
+                is_consistent, view = self.agent.state_is_consistent(State.from_json(body['state']))
 
-                if self.agent.num_step % MAX_STEPS_IN_EPISODE == 0:
-                    print(f'{self.agent.num_step/MAX_STEPS_IN_EPISODE} episodes of {MAX_EPISODES}')
-                    await self.launch_reset()
+                if is_consistent:
+                    reward, _state = self.agent.env.step(State.from_json(body['state']), int(body['action']))
+                    msg = Message(to=str(msg.sender), body=json.dumps({'state': _state.__dict__, 'reward': reward, 'ood': False}), metadata={"performative": "STEP_RESPONSE"})
+                    await self.send(msg)
+
+                    if self.agent.num_step == MAX_EPISODES * MAX_STEPS_IN_EPISODE:
+                        self.agent.finished = True
+
+                    if self.agent.num_step % MAX_STEPS_IN_EPISODE == 0:
+                        print(f'{self.agent.num_step/MAX_STEPS_IN_EPISODE} episodes of {MAX_EPISODES}')
+                        await self.launch_reset()
+                else:
+                    #print(f'Rejected agent {msg.sender} action due to upt of date view')
+                    _state = State.from_json(body['state'])
+                    _state.view = view
+                    msg = Message(to=str(msg.sender), body=json.dumps({'state': _state.__dict__, 'ood': True}), metadata={"performative": "STEP_RESPONSE"})
+                    await self.send(msg)
         
         
         async def launch_reset(self):
