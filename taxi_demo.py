@@ -3,7 +3,7 @@ import random
 import numpy as np
 from utils import *
 import time
-from state import SimpleState
+from state import State
 
 STEPS = 100
 NUM_ACTIONS = 5
@@ -33,7 +33,7 @@ def create_q_from_state_to_simple_state(Q):
     Q_ = {}
     for k in Q.keys():
         val = Q[k]
-        k_ = SimpleState(*k.pos)
+        k_ = State(*k.pos)
         k_.client_on_board = k.client_on_board
         k_.view = [k.view[1], k.view[6], k.view[3], k.view[4]]
         Q_[k_] = val
@@ -44,7 +44,7 @@ def create_q_from_state_to_simple_state(Q):
 if __name__ == '__main__':
     env = TaxiGridEnv()
     state = reset(env)
-    Q = load_object('.','Q1M_SimpleState')
+    Q = load_object('.','Q1M_CompleteState')
     cummulative_reward = 0
     jobs_completed = 0
     for _ in range(STEPS):
