@@ -3,8 +3,8 @@ from spade.behaviour import CyclicBehaviour
 from spade.template import Template
 from spade.message import Message
 from spade.agent import Agent
-from state import State
-from env import TaxiGridEnv
+from taxi_env.state import State
+from taxi_env.env import TaxiGridEnv
 import json
 
 
@@ -61,7 +61,7 @@ class TaxiEnvAgent(Agent):
                     await self.send(msg)
 
                     # print(self.agent.env.grid)
-                    
+
                     if self.agent.num_step == MAX_EPISODES * MAX_STEPS_IN_EPISODE:
                         self.agent.finished = True
 

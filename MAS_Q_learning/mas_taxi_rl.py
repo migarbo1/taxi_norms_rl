@@ -1,6 +1,6 @@
 from taxi_env_agent import TaxiEnvAgent
 from taxi_agent import TaxiAgent
-from utils import *
+from utils.utils import *
 import asyncio
 import spade
 import tqdm
@@ -37,7 +37,7 @@ async def main(env_agent, taxi_agent_1, taxi_agent_2):
 if __name__ == '__main__':
     try:
         # Q = load_object('.','Q1M_CompleteState') if os.path.exists('./Q1M_CompleteState.pickle') else {}
-        Q = load_object('.','Q_MAS_CompleteState_aux') if os.path.exists('./Q_MAS_CompleteState_aux.pickle') else {}
+        Q = load_object('.','Q/Q_MAS_CompleteState_aux') if os.path.exists('./Q_MAS_CompleteState_aux.pickle') else {}
 
         env_agent = TaxiEnvAgent('taxi_env_agent@gtirouter.dsic.upv.es', 'pass')
         taxi_agent_1 = TaxiAgent('taxi_agent_1@gtirouter.dsic.upv.es', 'pass', 'taxi_env_agent@gtirouter.dsic.upv.es', Q, inference=True)

@@ -3,8 +3,8 @@ from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.template import Template
 from spade.message import Message
 from spade.agent import Agent
-from state import State, SimpleState
-from utils import *
+from taxi_env.state import State, SimpleState
+from utils.utils import *
 import numpy as np
 import random
 import json

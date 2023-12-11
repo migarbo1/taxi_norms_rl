@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from env import TaxiGridEnv
+from taxi_env.env import TaxiGridEnv
 from utils import *
 from tqdm import tqdm
 

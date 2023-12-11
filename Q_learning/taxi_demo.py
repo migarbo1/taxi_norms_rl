@@ -1,9 +1,9 @@
-from env import TaxiGridEnv, Action
+from taxi_env.env import TaxiGridEnv, Action
 import random
 import numpy as np
-from utils import *
+from utils.utils import *
 import time
-from state import State
+from taxi_env.state import State
 
 STEPS = 100
 NUM_ACTIONS = 5
