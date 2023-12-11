@@ -96,7 +96,7 @@ class TaxiGridEnv():
         if action == Action.UP:
             x = state.pos[0] - 1
             if x < 0 or self.grid[x, state.pos[1]] == -1 or self.grid[x, state.pos[1]] == 3:
-                return -1, state
+                return -3, state
             new_state = State(x, state.pos[1])
             new_state.client_on_board = state.client_on_board
             reward = -1
@@ -114,7 +114,7 @@ class TaxiGridEnv():
         if action == Action.DOWN:
             x = state.pos[0] + 1
             if x > self.grid.shape[0] - 1 or self.grid[x, state.pos[1]] == -1 or self.grid[x, state.pos[1]] == 3:
-                return -1, state
+                return -3, state
             new_state = State(x, state.pos[1])
             new_state.client_on_board = state.client_on_board
             reward = -1
@@ -132,7 +132,7 @@ class TaxiGridEnv():
         if action == Action.LEFT:
             y = state.pos[1] - 1
             if y < 0 or self.grid[state.pos[0], y] == -1 or self.grid[state.pos[0], y] == 3:
-                return -1, state
+                return -3, state
             new_state = State(state.pos[0], y)
             new_state.client_on_board = state.client_on_board
             reward = -1
@@ -150,7 +150,7 @@ class TaxiGridEnv():
         if action == Action.RIGHT:
             y = state.pos[1] + 1
             if y > self.grid.shape[1] - 1 or self.grid[state.pos[0], y] == -1 or self.grid[state.pos[0], y] == 3:
-                return -1, state
+                return -3, state
             new_state = State(state.pos[0], y)
             new_state.client_on_board = state.client_on_board
             reward = -1

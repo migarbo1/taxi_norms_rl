@@ -3,7 +3,8 @@ from spade.behaviour import CyclicBehaviour, OneShotBehaviour
 from spade.template import Template
 from spade.message import Message
 from spade.agent import Agent
-from state import State
+from state import State, SimpleState
+from utils import *
 import numpy as np
 import random
 import json
@@ -23,6 +24,7 @@ class TaxiAgent(Agent):
         self.q_table = q_table
         self.total_reward = 0
         self.jobs_completed = 0
+        self.simple_q_table = load_object('.','Q1M_SimpleState') if os.path.exists('./Q1M_SimpleState.pickle') else {}
 
     
     async def setup(self) -> None:
@@ -33,10 +35,23 @@ class TaxiAgent(Agent):
         self.add_behaviour(self.ResetBehaviour(), template=template)
 
 
-    def decide_action(self):
+    def get_qs(self):
         qs = self.q_table.get(self.state, np.zeros(NUM_ACTIONS,))
+        if sum(qs) == 0:
+            simple_state = SimpleState(*self.state.pos)
+            simple_state.client_on_board = self.state.client_on_board
+            idx = [1,6,3,4] #up, down, left, right
+            simple_state.view = list(np.array(self.state.view)[idx])
+            if 3 not in simple_state.view:
+                qs = self.simple_q_table.get(simple_state, np.zeros(NUM_ACTIONS,))
+        return qs
 
-        # print(f'{self.jid} | state: {self.state} | q table: {qs}')
+
+
+    def decide_action(self):
+        qs = self.get_qs()
+
+        print(f'{self.jid} | state: {self.state} | q table: {qs}')
 
         if self.inference:
             return np.argmax(qs)
@@ -51,7 +66,7 @@ class TaxiAgent(Agent):
 
     def update_q_table(self, action, _state, reward):
         if not self.inference:
-            qs = self.q_table.get(self.state, np.zeros(NUM_ACTIONS,))
+            qs = self.get_qs()
             _qs = self.q_table.get(_state, np.zeros(NUM_ACTIONS,))
 
             delta = qs[action] + LR * (reward + GAMMA * _qs[np.argmax(_qs)] - qs[action])
@@ -97,7 +112,7 @@ class TaxiAgent(Agent):
             if resp:
                 body = json.loads(resp.body)
                 if body['ood']:
-                    self.state = State.from_json(body['state'])
+                    self.agent.state = State.from_json(body['state'])
                 else:
                     _state, reward = State.from_json(body['state']), body['reward']
                     self.agent.update_q_table(action, _state, reward)

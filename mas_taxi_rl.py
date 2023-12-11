@@ -30,14 +30,17 @@ async def main(env_agent, taxi_agent_1, taxi_agent_2):
     await taxi_agent_2.start()
 
     while not env_agent.finished:
-        await asyncio.sleep(0.1)      
+        await asyncio.sleep(0.1)     
+
 
 
 if __name__ == '__main__':
     try:
-        Q = load_object('.','Q10k_MAS_CompleteState') if os.path.exists('./Q10k_MAS_CompleteState.pickle') else {}
+        # Q = load_object('.','Q1M_CompleteState') if os.path.exists('./Q1M_CompleteState.pickle') else {}
+        Q = load_object('.','Q_MAS_CompleteState_aux') if os.path.exists('./Q_MAS_CompleteState_aux.pickle') else {}
+
         env_agent = TaxiEnvAgent('taxi_env_agent@gtirouter.dsic.upv.es', 'pass')
-        taxi_agent_1 = TaxiAgent('taxi_agent_1@gtirouter.dsic.upv.es', 'pass', 'taxi_env_agent@gtirouter.dsic.upv.es', Q, inference=False)
+        taxi_agent_1 = TaxiAgent('taxi_agent_1@gtirouter.dsic.upv.es', 'pass', 'taxi_env_agent@gtirouter.dsic.upv.es', Q, inference=True)
         taxi_agent_2 = TaxiAgent('taxi_agent_2@gtirouter.dsic.upv.es', 'pass', 'taxi_env_agent@gtirouter.dsic.upv.es', Q, inference=False)
               
         spade.run(main(env_agent, taxi_agent_1, taxi_agent_2))
@@ -47,13 +50,15 @@ if __name__ == '__main__':
         print('jobs completed: ', taxi_agent_1.jobs_completed)
         print('jobs completed: ', taxi_agent_2.jobs_completed)
     except:
-        Q = taxi_agent_1.q_table if taxi_agent_1.jobs_completed > taxi_agent_2.jobs_completed else taxi_agent_2.q_table
-        save_object('.', 'Q10k_MAS_CompleteState', Q)
+        # Q = taxi_agent_1.q_table if taxi_agent_1.jobs_completed > taxi_agent_2.jobs_completed else taxi_agent_2.q_table
+        Q = taxi_agent_2.q_table
+        save_object('.', 'Q_MAS_CompleteState_aux', Q)
         print('agent_total_reward: ', taxi_agent_1.total_reward)
         print('agent_total_reward: ', taxi_agent_2.total_reward)
         print('jobs completed: ', taxi_agent_1.jobs_completed)
         print('jobs completed: ', taxi_agent_2.jobs_completed)
-    Q = taxi_agent_1.q_table if taxi_agent_1.jobs_completed > taxi_agent_2.jobs_completed else taxi_agent_2.q_table
+    # Q = taxi_agent_1.q_table if taxi_agent_1.jobs_completed > taxi_agent_2.jobs_completed else taxi_agent_2.q_table
+    Q = taxi_agent_2.q_table
     
-    save_object('.', 'Q10k_MAS_CompleteState', Q)
+    save_object('.', 'Q_MAS_CompleteState_aux', Q)
     exit()
