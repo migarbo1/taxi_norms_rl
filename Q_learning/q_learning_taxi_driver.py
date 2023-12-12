@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from taxi_env.env import TaxiGridEnv
-from utils import *
+from utils.utils import *
 from tqdm import tqdm
 
 EPISODES = 50000
