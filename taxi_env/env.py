@@ -23,11 +23,12 @@ class Action(Enum):
 
 class TaxiGridEnv():
 
-    def __init__(self):
+    def __init__(self, is_normative):
         self.grid = np.zeros((8,12))
         self.drivers_dict = {}
         self._setup_grid()
         self.__invariant_grid = self.grid.copy()
+        self.is_normative = is_normative
 
 
     def _setup_grid(self):
@@ -76,7 +77,7 @@ class TaxiGridEnv():
             x = random.randint(0, self.grid.shape[0] - 1)
             y = random.randint(0, self.grid.shape[1] - 1)
             pos_code = self.grid[x,y]
-        
+
         self.grid[x,y] = GridZones.CAR.value
 
         state = State(x, y)
@@ -92,89 +93,66 @@ class TaxiGridEnv():
                 return 0, state
             else:
                 return -100, state
-        
+
+        # check bounbaries for each movement action
         if action == Action.UP:
             x = state.pos[0] - 1
             if x < 0 or self.grid[x, state.pos[1]] == -1 or self.grid[x, state.pos[1]] == 3:
                 return -3, state
             new_state = State(x, state.pos[1])
-            new_state.client_on_board = state.client_on_board
-            reward = -1
-            if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
-                new_state.client_on_board = 1
-                reward = 10
-            
-            if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
-                new_state.client_on_board = 0
-                reward = self.get_drop_reward(new_state.pos)
-            self.update_grid(state.pos, new_state.pos)
-            new_state.update_car_view(self.grid)
-            return reward, new_state
 
         if action == Action.DOWN:
             x = state.pos[0] + 1
             if x > self.grid.shape[0] - 1 or self.grid[x, state.pos[1]] == -1 or self.grid[x, state.pos[1]] == 3:
                 return -3, state
             new_state = State(x, state.pos[1])
-            new_state.client_on_board = state.client_on_board
-            reward = -1
-            if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
-                new_state.client_on_board = 1
-                reward = 10
-            
-            if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
-                new_state.client_on_board = 0
-                reward = self.get_drop_reward(new_state.pos)
-            self.update_grid(state.pos, new_state.pos)
-            new_state.update_car_view(self.grid)
-            return reward, new_state
 
         if action == Action.LEFT:
             y = state.pos[1] - 1
             if y < 0 or self.grid[state.pos[0], y] == -1 or self.grid[state.pos[0], y] == 3:
                 return -3, state
             new_state = State(state.pos[0], y)
-            new_state.client_on_board = state.client_on_board
-            reward = -1
-            if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
-                new_state.client_on_board = 1
-                reward = 10
-            
-            if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
-                new_state.client_on_board = 0
-                reward = self.get_drop_reward(new_state.pos)
-            self.update_grid(state.pos, new_state.pos)
-            new_state.update_car_view(self.grid)
-            return reward, new_state
 
         if action == Action.RIGHT:
             y = state.pos[1] + 1
             if y > self.grid.shape[1] - 1 or self.grid[state.pos[0], y] == -1 or self.grid[state.pos[0], y] == 3:
                 return -3, state
             new_state = State(state.pos[0], y)
-            new_state.client_on_board = state.client_on_board
-            reward = -1
-            if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
-                new_state.client_on_board = 1
-                reward = 10
-            
-            if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
-                new_state.client_on_board = 0
-                reward = self.get_drop_reward(new_state.pos)
-            self.update_grid(state.pos, new_state.pos)
-            new_state.update_car_view(self.grid)
-            return reward, new_state
+
+        reward = -1
+        
+        # TODO: remove norm from env code
+        if self.car_in_queue(new_state.pos):
+            reward = -90 if self.agent_outside_queue(state) and self.is_normative else -0.5
+
+        # If movement is possible, compute reward
+        new_state.client_on_board = state.client_on_board
+        if self.car_in_pick_position(new_state.pos) and new_state.client_on_board == 0:
+            new_state.client_on_board = 1
+            reward = 1 if reward != -90 else -90
+
+        if self.car_in_drop_position(new_state.pos) and new_state.client_on_board == 1:
+            new_state.client_on_board = 0
+            reward = self.get_drop_reward(new_state.pos)
+        self.update_grid(state.pos, new_state.pos)
+        new_state.update_car_view(self.grid)
+
+        return reward, new_state
+
+
+    def agent_outside_queue(self, state):
+        return state.pos[1] != 0
 
 
     def car_in_queue(self, pos):
         x, y = pos[0], pos[1]
-        return self.grid[x, y] == GridZones.QUEUE.value
-    
+        return self.grid[x, y] == GridZones.QUEUE.value or self.grid[x, y] == GridZones.PICKUP.value
+
 
     def next_queue_spot_occupied(self, pos):
         x, y = pos[0]+1, pos[1]
         return self.grid[x, y] == GridZones.CAR.value
-    
+
 
     def car_in_pick_position(self, pos):
         x, y = pos[0], pos[1]
@@ -184,18 +162,17 @@ class TaxiGridEnv():
     def car_in_drop_position(self, pos):
         x, y = pos[0], pos[1]
         return self.grid[x, y] == GridZones.DROP1.value or self.grid[x,y] == GridZones.DROP2.value or self.grid[x,y] == GridZones.DROP3.value
-    
+
 
     def get_drop_reward(self, pos):
         x, y = pos[0], pos[1]
         return self.grid[x, y]
-    
-    
+
+
     def update_grid(self, old_pos, new_pos):
         x, y = old_pos
         x_, y_ = new_pos
 
         self.grid[x, y] = self.__invariant_grid[x, y]
         self.grid[x_, y_] = GridZones.CAR.value
-        # print(self.grid)
-
+        print(self.grid)

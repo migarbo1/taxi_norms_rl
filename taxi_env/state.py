@@ -6,7 +6,7 @@ class State():
         self.pos = [x, y]
         self.client_on_board = 0
         self.view = np.zeros((8,))
-    
+
 
     def update_car_view(self, grid):
 
@@ -31,10 +31,14 @@ class State():
     def __eq__(self, __value: object) -> bool:
         return self.pos == __value.pos and self.client_on_board == __value.client_on_board and self.view == __value.view
 
-    
+
     def __hash__(self) -> int:
         return hash((self.pos[0], self.pos[1], self.client_on_board, *self.view))
-    
+
+
+    def to_array(self) -> list:
+      return [*self.pos, self.client_on_board, *self.view]
+
 
     @staticmethod
     def from_json(s: dict):
@@ -42,9 +46,10 @@ class State():
         state.client_on_board = s['client_on_board']
         state.view = s['view']
         return state
-    
+
 
 class SimpleState(State):
+
 
     def __init__(self, x, y):
         super().__init__(x, y)
@@ -61,6 +66,7 @@ class SimpleState(State):
         d = grid[self.pos[0]+1, self.pos[1]] if self.pos[0] < grid.shape[0]-1 else -1
 
         self.view = [u, d, l, r]
+
 
     @staticmethod
     def from_json(s: dict):
